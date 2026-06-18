@@ -1,0 +1,4 @@
+data/flights.json
+flighty-import.json
+.DS_Store
+node_modules/
