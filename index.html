@@ -1,68 +1,94 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Flight Log</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <title>Flight Log</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="app-header">
-    <h1>✈️ My Flight Log</h1>
+    <div class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2.5 1.5V22l4-1 4 1v-1.5L13 19v-5.5l8 2.5Z"/></svg>
+      </span>
+      <h1>Flight Log</h1>
+    </div>
     <nav class="tabs">
-      <button class="tab-button active" data-tab="map">地圖</button>
-      <button class="tab-button" data-tab="add">新增航班</button>
-      <button class="tab-button" data-tab="list">航班紀錄</button>
-      <button class="tab-button" data-tab="stats">統計</button>
-      <button class="tab-button" data-tab="settings">設定</button>
+      <div class="tab-indicator" id="tab-indicator"></div>
+      <button class="tab-button active" data-tab="map">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-7.58 7-13a7 7 0 1 0-14 0c0 5.42 7 13 7 13Z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        <span>Map</span>
+      </button>
+      <button class="tab-button" data-tab="add">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+        <span>Add Flight</span>
+      </button>
+      <button class="tab-button" data-tab="list">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        <span>Flights</span>
+      </button>
+      <button class="tab-button" data-tab="stats">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+        <span>Stats</span>
+      </button>
+      <button class="tab-button" data-tab="settings">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        <span>Settings</span>
+      </button>
     </nav>
   </header>
 
   <main>
     <section id="tab-map" class="tab-panel active">
-      <div id="map"></div>
+      <div class="map-wrap">
+        <div id="map"></div>
+        <div class="map-hero-stats" id="map-hero-stats"></div>
+      </div>
       <div id="visited-flags" class="visited-flags"></div>
     </section>
 
     <section id="tab-add" class="tab-panel">
       <form id="add-flight-form" class="card">
-        <h2>新增一筆航班</h2>
+        <h2>Log a New Flight</h2>
 
         <div class="form-row">
-          <label for="dep-airport">出發機場</label>
+          <label for="dep-airport">Departure Airport</label>
           <div class="autocomplete-wrapper">
-            <input type="text" id="dep-airport" placeholder="輸入機場代碼、城市或名稱，例如 TPE / Taipei" autocomplete="off">
+            <input type="text" id="dep-airport" placeholder="Airport code, city, or name — e.g. TPE / Taipei" autocomplete="off">
             <div id="dep-airport-list" class="autocomplete-list"></div>
           </div>
         </div>
 
         <div class="form-row">
-          <label for="arr-airport">抵達機場</label>
+          <label for="arr-airport">Arrival Airport</label>
           <div class="autocomplete-wrapper">
-            <input type="text" id="arr-airport" placeholder="輸入機場代碼、城市或名稱，例如 NRT / Tokyo" autocomplete="off">
+            <input type="text" id="arr-airport" placeholder="Airport code, city, or name — e.g. NRT / Tokyo" autocomplete="off">
             <div id="arr-airport-list" class="autocomplete-list"></div>
           </div>
         </div>
 
         <div class="form-row form-row-inline">
           <div>
-            <label for="flight-date">日期</label>
+            <label for="flight-date">Date</label>
             <input type="date" id="flight-date">
           </div>
           <div>
-            <label for="flight-period">大概時段（用於航班查詢）</label>
+            <label for="flight-period">Approx. time of day (for flight lookup)</label>
             <select id="flight-period">
-              <option value="AM">上午 (00:00–12:00)</option>
-              <option value="PM">下午 (12:00–24:00)</option>
+              <option value="AM">Morning (00:00–12:00)</option>
+              <option value="PM">Afternoon (12:00–24:00)</option>
             </select>
           </div>
         </div>
 
         <div class="form-row">
-          <button type="button" id="search-flight-btn" class="secondary-btn">🔍 搜尋航班</button>
+          <button type="button" id="search-flight-btn" class="secondary-btn">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            Search Flights
+          </button>
           <label class="checkbox-label">
-            <input type="checkbox" id="manual-toggle"> 手動輸入航空公司
+            <input type="checkbox" id="manual-toggle"> Enter airline manually
           </label>
         </div>
 
@@ -70,113 +96,153 @@
         <div id="search-results" class="results-list"></div>
 
         <div id="manual-fields" class="form-row hidden">
-          <label for="manual-airline">航空公司</label>
-          <input type="text" id="manual-airline" list="airline-names" placeholder="例如 China Airlines">
+          <label for="manual-airline">Airline</label>
+          <input type="text" id="manual-airline" list="airline-names" placeholder="e.g. China Airlines">
           <datalist id="airline-names"></datalist>
         </div>
 
         <div class="form-row">
-          <button type="submit" class="primary-btn">＋ 加入航班紀錄</button>
+          <button type="submit" class="primary-btn">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+            Add to Log
+          </button>
         </div>
       </form>
     </section>
 
     <section id="tab-list" class="tab-panel">
       <div class="card">
-        <h2>所有航班紀錄</h2>
-        <p id="flight-list-empty" class="dim hidden">尚無航班紀錄，請到「新增航班」頁新增。</p>
+        <h2>All Flights</h2>
+        <div id="flight-list-empty" class="empty-state hidden">
+          <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2.5 1.5V22l4-1 4 1v-1.5L13 19v-5.5l8 2.5Z"/></svg>
+          <h3>No flights logged yet</h3>
+          <p>Log your first flight to start building your travel history.</p>
+          <button type="button" class="primary-btn" id="empty-state-cta">Add a Flight</button>
+        </div>
         <div id="flights-container" class="flights-container"></div>
       </div>
     </section>
 
     <section id="tab-stats" class="tab-panel">
       <div class="card">
-        <h2>飛行統計</h2>
+        <div class="stats-header">
+          <h2>Flight Statistics</h2>
+          <button type="button" class="secondary-btn" id="export-recap-btn">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5 15.4 17.5M15.4 6.5 8.6 10.5"/></svg>
+            Share Recap
+          </button>
+        </div>
         <div id="year-filter" class="year-filter"></div>
         <div class="stats-grid">
           <div class="stat-box">
-            <div class="stat-value" id="stat-total-flights">0</div>
-            <div class="stat-label">總航班數</div>
+            <div class="stat-value" id="stat-total-flights" data-raw="0">0</div>
+            <div class="stat-label">Total Flights</div>
           </div>
           <div class="stat-box">
             <div class="stat-value" id="stat-total-distance">0 km</div>
-            <div class="stat-label">總飛行距離</div>
+            <div class="stat-label">Total Distance</div>
           </div>
           <div class="stat-box">
             <div class="stat-value" id="stat-flight-time">—</div>
-            <div class="stat-label">預估飛行時間</div>
+            <div class="stat-label">Est. Flight Time</div>
           </div>
           <div class="stat-box">
-            <div class="stat-value" id="stat-airports">0</div>
-            <div class="stat-label">造訪機場數</div>
+            <div class="stat-value" id="stat-airports" data-raw="0">0</div>
+            <div class="stat-label">Airports Visited</div>
           </div>
           <div class="stat-box">
-            <div class="stat-value" id="stat-countries">0</div>
-            <div class="stat-label">造訪國家數</div>
+            <div class="stat-value" id="stat-countries" data-raw="0">0</div>
+            <div class="stat-label">Countries Visited</div>
           </div>
           <div class="stat-box">
             <div class="stat-value" id="stat-earth-laps">0</div>
-            <div class="stat-label">約等於繞地球幾圈</div>
+            <div class="stat-label">Laps Around Earth</div>
           </div>
           <div class="stat-box">
             <div class="stat-value" id="stat-moon-pct">0%</div>
-            <div class="stat-label">約等於地球到月球距離的比例</div>
+            <div class="stat-label">Distance to the Moon</div>
           </div>
         </div>
 
-        <h3>搭過的航空公司</h3>
+        <h3>Milestones</h3>
+        <div id="milestones-grid" class="milestones-grid"></div>
+
+        <h3>Airlines Flown</h3>
         <ul id="airline-stats-list" class="airline-list"></ul>
 
-        <h3>造訪機場</h3>
+        <h3>Top Airports</h3>
         <ul id="airport-stats-list" class="airline-list"></ul>
       </div>
     </section>
 
     <section id="tab-settings" class="tab-panel">
       <div class="card">
-        <h2>設定</h2>
+        <h2>Settings</h2>
 
-        <h3>航班查詢 API 金鑰</h3>
+        <h3>Flight Lookup API Key</h3>
         <p class="dim">
-          「新增航班」頁的自動搜尋功能使用
+          The auto-search feature on the Add Flight tab uses
           <a href="https://rapidapi.com/aedbx-aedbx/api/aerodatabox" target="_blank" rel="noopener">AeroDataBox</a>
-          (透過 RapidAPI 提供) 的免費額度。請自行註冊一個免費帳號並訂閱該 API 的免費方案，
-          將你的 RapidAPI Key 貼在下方即可。若不想申請金鑰，仍可使用「手動輸入」方式新增航班。
+          (via RapidAPI) on its free tier. Sign up for a free RapidAPI account, subscribe to the free plan
+          for that API, and paste your key below. You can still add flights manually without a key.
         </p>
         <div class="form-row">
           <label for="api-key-input">RapidAPI Key</label>
-          <input type="text" id="api-key-input" placeholder="貼上你的 RapidAPI 金鑰">
+          <input type="text" id="api-key-input" placeholder="Paste your RapidAPI key">
         </div>
         <div class="form-row">
-          <button id="save-settings-btn" class="primary-btn">儲存設定</button>
+          <button id="save-settings-btn" class="primary-btn">Save Settings</button>
         </div>
         <div id="settings-status" class="dim"></div>
 
-        <h3>資料備份</h3>
-        <p class="dim">所有航班紀錄都儲存在這台電腦的瀏覽器中。建議定期匯出備份。</p>
+        <h3>Data Backup</h3>
+        <p class="dim">All flight records are stored locally in this computer's browser. We recommend exporting a backup regularly.</p>
         <div class="form-row form-row-inline">
-          <button id="export-btn" class="secondary-btn">⬇️ 匯出資料 (JSON)</button>
+          <button id="export-btn" class="secondary-btn">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 21h16"/></svg>
+            Export Data (JSON)
+          </button>
           <label class="secondary-btn file-label">
-            ⬆️ 匯入資料
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9m0 0 4 4m-4-4-4 4M4 3h16"/></svg>
+            Import Data
             <input type="file" id="import-input" accept="application/json" class="hidden">
           </label>
         </div>
 
-        <h3>清除資料</h3>
+        <h3>Clear Data</h3>
         <div class="form-row">
-          <button id="clear-data-btn" class="danger-btn">🗑️ 清除所有航班紀錄</button>
+          <button id="clear-data-btn" class="danger-btn">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg>
+            Clear All Flights
+          </button>
         </div>
       </div>
     </section>
   </main>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <div id="recap-modal" class="recap-modal hidden">
+    <div class="recap-modal-backdrop" id="recap-modal-backdrop"></div>
+    <div class="recap-modal-content">
+      <button type="button" class="recap-modal-close" id="recap-modal-close" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <img id="recap-modal-img" class="recap-modal-img" alt="Flight recap card">
+      <button type="button" class="primary-btn" id="recap-download-btn">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 21h16"/></svg>
+        Download PNG
+      </button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
   <script src="js/airports.js"></script>
   <script src="js/airlines.js"></script>
+  <script src="js/worldmap.js"></script>
   <script src="js/geo.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/flightApi.js"></script>
   <script src="js/map.js"></script>
+  <script src="js/recap.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

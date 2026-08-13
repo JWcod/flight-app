@@ -91,16 +91,55 @@ function estimateFlightDuration(distanceKm) {
 function setupTabs() {
   const buttons = document.querySelectorAll(".tab-button");
   const panels = document.querySelectorAll(".tab-panel");
+  const indicator = document.getElementById("tab-indicator");
+
+  function moveIndicator(btn) {
+    if (!indicator || !btn) return;
+    indicator.style.width = `${btn.offsetWidth}px`;
+    indicator.style.height = `${btn.offsetHeight}px`;
+    indicator.style.top = `${btn.offsetTop}px`;
+    indicator.style.transform = `translateX(${btn.offsetLeft}px)`;
+  }
+
   buttons.forEach((btn) => {
     btn.addEventListener("click", () => {
       buttons.forEach((b) => b.classList.remove("active"));
       panels.forEach((p) => p.classList.remove("active"));
       btn.classList.add("active");
       document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
+      moveIndicator(btn);
       if (btn.dataset.tab === "map") {
         setTimeout(refreshMap, 50);
       }
+      if (btn.dataset.tab === "stats") {
+        animateStatCounters();
+      }
     });
+  });
+
+  requestAnimationFrame(() => moveIndicator(document.querySelector(".tab-button.active")));
+  window.addEventListener("resize", () => moveIndicator(document.querySelector(".tab-button.active")));
+}
+
+// ---------- Count-up animation for headline stat numbers ----------
+function animateCountUp(el, endValue, formatter = (v) => Math.round(v).toLocaleString()) {
+  const duration = 700;
+  const startTime = performance.now();
+  function tick(now) {
+    const p = Math.min((now - startTime) / duration, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = formatter(endValue * eased);
+    if (p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function animateStatCounters() {
+  ["stat-total-flights", "stat-airports", "stat-countries"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const end = parseInt(el.textContent.replace(/,/g, ""), 10) || 0;
+    animateCountUp(el, end);
   });
 }
 
@@ -191,18 +230,18 @@ async function onSearchFlights() {
   const statusEl = document.getElementById("search-status");
 
   if (!dep || !arr) {
-    statusEl.textContent = "請從下拉選單中選擇有效的出發與抵達機場。";
+    statusEl.textContent = "Please select a valid departure and arrival airport from the dropdown.";
     return;
   }
   if (!date) {
-    statusEl.textContent = "請選擇日期。";
+    statusEl.textContent = "Please select a date.";
     return;
   }
 
   const settings = getSettings();
   resultsEl.innerHTML = "";
   pendingFlightDetails = null;
-  statusEl.textContent = "搜尋中...";
+  statusEl.textContent = "Searching...";
 
   try {
     const matches = await searchFlights({
@@ -214,10 +253,10 @@ async function onSearchFlights() {
     });
 
     if (matches.length === 0) {
-      statusEl.textContent = "找不到符合的航班，可改用「手動輸入」自行填寫航班資訊。";
+      statusEl.textContent = "No matching flights found. Try Manual Entry to fill in the details yourself.";
       return;
     }
-    statusEl.textContent = `找到 ${matches.length} 個可能的航班，請選擇：`;
+    statusEl.textContent = `Found ${matches.length} possible flight${matches.length === 1 ? "" : "s"} — pick one:`;
     matches.forEach((m, idx) => {
       const card = document.createElement("label");
       card.className = "result-card";
@@ -226,7 +265,7 @@ async function onSearchFlights() {
       card.innerHTML = `
         <input type="radio" name="flight-choice" value="${idx}">
         <div>
-          <div><strong>${m.airlineName || "未知航空公司"} ${m.flightNumber}</strong></div>
+          <div><strong>${m.airlineName || "Unknown Airline"} ${m.flightNumber}</strong></div>
           <div class="dim">${dep.iata} ${depTime} → ${arr.iata} ${arrTime}${m.aircraftModel ? " · " + m.aircraftModel : ""}</div>
         </div>`;
       card.querySelector("input").addEventListener("change", () => {
@@ -235,7 +274,7 @@ async function onSearchFlights() {
       resultsEl.appendChild(card);
     });
   } catch (e) {
-    statusEl.textContent = e.message || "查詢時發生錯誤。";
+    statusEl.textContent = e.message || "Something went wrong while searching.";
   }
 }
 
@@ -260,15 +299,15 @@ function onAddFlight(e) {
   const manual = document.getElementById("manual-toggle").checked;
 
   if (!dep || !arr) {
-    statusEl.textContent = "請從下拉選單中選擇有效的出發與抵達機場。";
+    statusEl.textContent = "Please select a valid departure and arrival airport from the dropdown.";
     return;
   }
   if (dep.iata === arr.iata) {
-    statusEl.textContent = "出發與抵達機場不能相同。";
+    statusEl.textContent = "Departure and arrival airports can't be the same.";
     return;
   }
   if (!date) {
-    statusEl.textContent = "請選擇日期。";
+    statusEl.textContent = "Please select a date.";
     return;
   }
 
@@ -277,15 +316,15 @@ function onAddFlight(e) {
     airlineName = document.getElementById("manual-airline").value.trim();
     aircraft = null;
     if (!airlineName) {
-      statusEl.textContent = "請輸入航空公司名稱。";
+      statusEl.textContent = "Please enter an airline name.";
       return;
     }
   } else {
     if (!pendingFlightDetails) {
-      statusEl.textContent = "請先搜尋並選擇航班，或勾選「手動輸入」。";
+      statusEl.textContent = "Search and select a flight first, or check Manual Entry.";
       return;
     }
-    airlineName = pendingFlightDetails.airlineName || "未知航空公司";
+    airlineName = pendingFlightDetails.airlineName || "Unknown Airline";
     aircraft = pendingFlightDetails.aircraftModel;
   }
 
@@ -303,7 +342,7 @@ function onAddFlight(e) {
 
   addFlight(flight);
   resetAddFlightForm();
-  statusEl.textContent = "已加入航班紀錄！";
+  statusEl.textContent = "Flight added to your log!";
   renderAll();
 }
 
@@ -329,11 +368,12 @@ function renderFlightList() {
   }
   document.getElementById("flight-list-empty").classList.add("hidden");
 
-  flights.forEach((f) => {
+  flights.forEach((f, i) => {
     const airlineName = f.airline?.name || "";
     const duration = estimateFlightDuration(f.distanceKm);
     const card = document.createElement("div");
     card.className = "flight-card";
+    card.style.animationDelay = `${Math.min(i, 12) * 35}ms`;
     card.innerHTML = `
       <div class="fc-top">
         <div class="fc-airline">
@@ -350,8 +390,8 @@ function renderFlightList() {
         <div class="fc-line">
           <div class="fc-dashes"></div>
           <div class="fc-line-center">
-            <div class="fc-plane-icon">✈</div>
-            ${duration ? `<div class="fc-duration">約 ${duration}</div>` : ""}
+            <svg class="fc-plane-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2.5 1.5V22l4-1 4 1v-1.5L13 19v-5.5l8 2.5Z"/></svg>
+            ${duration ? `<div class="fc-duration">~${duration}</div>` : ""}
           </div>
           <div class="fc-dashes"></div>
         </div>
@@ -362,12 +402,15 @@ function renderFlightList() {
       </div>
       <div class="fc-bottom">
         <span class="fc-distance">${(f.distanceKm || 0).toLocaleString()} km</span>
-        <button class="delete-btn" data-id="${f.id}">✕ 刪除</button>
+        <button class="delete-btn" data-id="${f.id}">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg>
+          Delete
+        </button>
       </div>
     `;
     card.querySelector(".fc-logo-slot").replaceWith(createAirlineLogoEl(airlineName));
     card.querySelector(".delete-btn").addEventListener("click", () => {
-      if (confirm("確定要刪除這筆航班紀錄嗎？")) {
+      if (confirm("Delete this flight from your log?")) {
         deleteFlight(f.id);
         renderAll();
       }
@@ -392,8 +435,8 @@ function renderYearFilter() {
   container.innerHTML = "";
   if (years.length < 2) return; // no point showing filter for 0–1 years
 
-  ["全部", ...years].forEach(label => {
-    const isAll = label === "全部";
+  ["All", ...years].forEach(label => {
+    const isAll = label === "All";
     const active = isAll ? selectedStatsYear === null : selectedStatsYear === label;
     const btn = document.createElement("button");
     btn.className = "year-btn" + (active ? " active" : "");
@@ -429,7 +472,7 @@ function renderStats() {
   const days = Math.floor(totalHours / 24);
   const h = Math.floor(totalHours % 24);
   const m = Math.round((totalHours - Math.floor(totalHours)) * 60);
-  const timeStr = days > 0 ? `約 ${days} 天 ${h} 小時 ${m} 分` : `約 ${h} 小時 ${m} 分`;
+  const timeStr = days > 0 ? `~${days}d ${h}h ${m}m` : `~${h}h ${m}m`;
   document.getElementById("stat-flight-time").textContent = totalFlights > 0 ? timeStr : "—";
 
   const airports = new Set();
@@ -446,7 +489,7 @@ function renderStats() {
   // Airline breakdown
   const counts = new Map();
   flights.forEach((f) => {
-    const name = f.airline?.name || "未知航空公司";
+    const name = f.airline?.name || "Unknown Airline";
     counts.set(name, (counts.get(name) || 0) + 1);
   });
   const sorted = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
@@ -454,7 +497,7 @@ function renderStats() {
   const list = document.getElementById("airline-stats-list");
   list.innerHTML = "";
   if (sorted.length === 0) {
-    list.innerHTML = '<li class="dim">尚無資料</li>';
+    list.innerHTML = '<li class="dim">No data yet</li>';
   } else {
     const maxCount = sorted[0][1];
     sorted.forEach(([name, count]) => {
@@ -467,7 +510,7 @@ function renderStats() {
           <div class="airline-stat-name">${escapeHtml(name)}</div>
           <div class="airline-stat-bar-bg"><div class="airline-stat-bar" style="width:${pct}%"></div></div>
         </div>
-        <span class="airline-stat-count">${count} 次</span>
+        <span class="airline-stat-count">${count}×</span>
       `;
       li.querySelector(".fc-logo-slot").replaceWith(createAirlineLogoEl(name));
       list.appendChild(li);
@@ -489,7 +532,7 @@ function renderStats() {
   const airportList = document.getElementById("airport-stats-list");
   airportList.innerHTML = "";
   if (sortedAirports.length === 0) {
-    airportList.innerHTML = '<li class="dim">尚無資料</li>';
+    airportList.innerHTML = '<li class="dim">No data yet</li>';
   } else {
     sortedAirports.forEach(([label, count]) => {
       const [iata, ...cityParts] = label.split(" ");
@@ -500,7 +543,7 @@ function renderStats() {
           <span class="airport-iata">${iata}</span>
           <span class="airport-city">${escapeHtml(city)}</span>
         </div>
-        <span class="badge">${count} 次</span>
+        <span class="badge">${count}×</span>
       `;
       airportList.appendChild(li);
     });
@@ -514,7 +557,7 @@ function setupSettings() {
 
   document.getElementById("save-settings-btn").addEventListener("click", () => {
     saveSettings({ apiKey: document.getElementById("api-key-input").value.trim() });
-    document.getElementById("settings-status").textContent = "已儲存。";
+    document.getElementById("settings-status").textContent = "Saved.";
   });
 
   document.getElementById("export-btn").addEventListener("click", () => exportData());
@@ -524,9 +567,9 @@ function setupSettings() {
     if (!file) return;
     importData(file, (err, count) => {
       if (err) {
-        document.getElementById("settings-status").textContent = "匯入失敗：檔案格式錯誤。";
+        document.getElementById("settings-status").textContent = "Import failed: invalid file format.";
       } else {
-        document.getElementById("settings-status").textContent = `已匯入 ${count} 筆航班紀錄。`;
+        document.getElementById("settings-status").textContent = `Imported ${count} flight${count === 1 ? "" : "s"}.`;
         renderAll();
       }
     });
@@ -534,7 +577,7 @@ function setupSettings() {
   });
 
   document.getElementById("clear-data-btn").addEventListener("click", () => {
-    if (confirm("確定要清除所有航班紀錄嗎？此動作無法復原。")) {
+    if (confirm("Clear all flight records? This can't be undone.")) {
       saveFlights([]);
       renderAll();
     }
@@ -590,7 +633,7 @@ function renderVisitedFlags() {
     .sort((a, b) => a.name.localeCompare(b.name));
   if (items.length === 0) { flagsEl.innerHTML = ""; return; }
   flagsEl.innerHTML = `
-    <span class="flags-label">飛行足跡</span>
+    <span class="flags-label">Places You've Been</span>
     <div class="flags-row">
       ${items.map(c => `
         <div class="flag-item">
@@ -601,12 +644,121 @@ function renderVisitedFlags() {
   `;
 }
 
+// ---------- Milestones ----------
+const MILESTONE_ICONS = {
+  flights: `<path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2.5 1.5V22l4-1 4 1v-1.5L13 19v-5.5l8 2.5Z"/>`,
+  countries: `<path d="M5 21V3m0 3h13l-2.5 3.5L18 13H5"/>`,
+  distance: `<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="4"/>`,
+  moon: `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/>`,
+  airports: `<path d="M12 22s7-7.58 7-13a7 7 0 1 0-14 0c0 5.42 7 13 7 13Z"/><circle cx="12" cy="9" r="2.5"/>`,
+};
+
+const fmtCount = (v) => `${Math.floor(v).toLocaleString()}`;
+const fmtKm = (v) => `${Math.round(v).toLocaleString()} km`;
+
+const MILESTONES = [
+  { id: "flights-1", category: "flights", title: "First Flight", desc: "Log your first flight", target: 1, metric: (s) => s.totalFlights, format: fmtCount },
+  { id: "flights-10", category: "flights", title: "Frequent Flyer", desc: "Log 10 flights", target: 10, metric: (s) => s.totalFlights, format: fmtCount },
+  { id: "flights-25", category: "flights", title: "Jet Setter", desc: "Log 25 flights", target: 25, metric: (s) => s.totalFlights, format: fmtCount },
+  { id: "flights-50", category: "flights", title: "Globetrotter", desc: "Log 50 flights", target: 50, metric: (s) => s.totalFlights, format: fmtCount },
+  { id: "countries-5", category: "countries", title: "Explorer", desc: "Visit 5 countries", target: 5, metric: (s) => s.countries, format: fmtCount },
+  { id: "countries-10", category: "countries", title: "World Traveler", desc: "Visit 10 countries", target: 10, metric: (s) => s.countries, format: fmtCount },
+  { id: "countries-20", category: "countries", title: "Globe Conqueror", desc: "Visit 20 countries", target: 20, metric: (s) => s.countries, format: fmtCount },
+  { id: "airports-15", category: "airports", title: "Airport Hopper", desc: "Pass through 15 airports", target: 15, metric: (s) => s.airports, format: fmtCount },
+  { id: "airports-30", category: "airports", title: "Hub Master", desc: "Pass through 30 airports", target: 30, metric: (s) => s.airports, format: fmtCount },
+  { id: "laps-1", category: "distance", title: "Around the World", desc: "Fly 1 lap around Earth", target: 40075, metric: (s) => s.totalDistance, format: fmtKm },
+  { id: "laps-2", category: "distance", title: "Double Orbit", desc: "Fly 2 laps around Earth", target: 80150, metric: (s) => s.totalDistance, format: fmtKm },
+  { id: "moon", category: "moon", title: "To the Moon", desc: "Fly the distance to the Moon", target: 384400, metric: (s) => s.totalDistance, format: fmtKm },
+];
+
+function computeLifetimeStats() {
+  const flights = getFlights();
+  const totalDistance = flights.reduce((sum, f) => sum + (f.distanceKm || 0), 0);
+  const airports = new Set();
+  const countries = new Set();
+  flights.forEach((f) => {
+    airports.add(f.departure.iata);
+    airports.add(f.arrival.iata);
+    if (f.departure.country) countries.add(f.departure.country);
+    if (f.arrival.country) countries.add(f.arrival.country);
+  });
+  return {
+    totalFlights: flights.length,
+    totalDistance,
+    airports: airports.size,
+    countries: countries.size,
+  };
+}
+
+function renderMilestones() {
+  const grid = document.getElementById("milestones-grid");
+  if (!grid) return;
+  const stats = computeLifetimeStats();
+
+  grid.innerHTML = MILESTONES.map((m) => {
+    const value = m.metric(stats);
+    const unlocked = value >= m.target;
+    const pct = Math.max(0, Math.min(100, Math.round((value / m.target) * 100)));
+    return `
+      <div class="milestone-badge ${unlocked ? "unlocked" : "locked"}">
+        <div class="milestone-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${MILESTONE_ICONS[m.category]}</svg>
+        </div>
+        <div class="milestone-info">
+          <div class="milestone-title">${m.title}</div>
+          <div class="milestone-desc">${m.desc}</div>
+          ${unlocked
+            ? `<div class="milestone-unlocked-label">Unlocked</div>`
+            : `<div class="milestone-progress-bg"><div class="milestone-progress" style="width:${pct}%"></div></div>
+               <div class="milestone-progress-label">${m.format(value)} / ${m.format(m.target)}</div>`
+          }
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// ---------- Map hero stats ----------
+function renderMapHeroStats() {
+  const el = document.getElementById("map-hero-stats");
+  if (!el) return;
+  const flights = getFlights();
+  const totalDistance = flights.reduce((sum, f) => sum + (f.distanceKm || 0), 0);
+  const countries = new Set();
+  flights.forEach((f) => {
+    if (f.departure?.country) countries.add(f.departure.country);
+    if (f.arrival?.country) countries.add(f.arrival.country);
+  });
+  if (flights.length === 0) {
+    el.innerHTML = "";
+    return;
+  }
+  el.innerHTML = `
+    <div class="hero-stat">
+      <div class="hero-stat-value">${flights.length.toLocaleString()}</div>
+      <div class="hero-stat-label">Flights</div>
+    </div>
+    <div class="hero-stat-divider"></div>
+    <div class="hero-stat">
+      <div class="hero-stat-value">${totalDistance.toLocaleString()}</div>
+      <div class="hero-stat-label">km flown</div>
+    </div>
+    <div class="hero-stat-divider"></div>
+    <div class="hero-stat">
+      <div class="hero-stat-value">${countries.size}</div>
+      <div class="hero-stat-label">Countries</div>
+    </div>
+  `;
+}
+
 // ---------- Render all ----------
 function renderAll() {
   renderFlightList();
   renderYearFilter();
   renderStats();
+  renderMilestones();
   renderVisitedFlags();
+  renderMapHeroStats();
   if (isMapTabActive()) refreshMap();
 }
 
@@ -629,6 +781,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupTabs();
   setupAddFlightForm();
   setupSettings();
+  document.getElementById("empty-state-cta")?.addEventListener("click", () => {
+    document.querySelector('.tab-button[data-tab="add"]')?.click();
+  });
   map = initMap("map");
   await initStorage(); // sync data/flights.json → localStorage before first render
   renderAll();

@@ -101,16 +101,16 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, "127.0.0.1", () => {
   const url = `http://localhost:${PORT}`;
-  console.log(`✈️  My Flight Log 已啟動：${url}`);
-  console.log(`   資料檔案：${DATA_FILE}`);
-  console.log(`   按 Ctrl+C 停止`);
+  console.log(`✈️  Flight Log running at: ${url}`);
+  console.log(`   Data file: ${DATA_FILE}`);
+  console.log(`   Press Ctrl+C to stop`);
   // Open in default browser (macOS)
   exec(`open "${url}"`);
 });
 
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE") {
-    console.error(`❌ 埠 ${PORT} 已被使用，請先關閉其他視窗後再重試。`);
+    console.error(`❌ Port ${PORT} is already in use — close the other window and try again.`);
   } else {
     console.error("Server error:", err);
   }

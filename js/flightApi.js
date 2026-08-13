@@ -9,7 +9,7 @@ class FlightApiError extends Error {}
 // AeroDataBox free tier limits the FIDS time window to 12 hours.
 async function searchFlights({ apiKey, depIata, arrIata, date, period }) {
   if (!apiKey) {
-    throw new FlightApiError("尚未設定 API 金鑰，請至「設定」頁輸入 RapidAPI 金鑰。");
+    throw new FlightApiError("No API key set yet — enter your RapidAPI key on the Settings tab.");
   }
 
   const [fromLocal, toLocal] =
@@ -29,17 +29,17 @@ async function searchFlights({ apiKey, depIata, arrIata, date, period }) {
       },
     });
   } catch (e) {
-    throw new FlightApiError("無法連線到航班查詢服務，請檢查網路連線。");
+    throw new FlightApiError("Couldn't reach the flight lookup service — check your internet connection.");
   }
 
   if (res.status === 401 || res.status === 403) {
-    throw new FlightApiError("API 金鑰無效或未授權，請至「設定」頁確認金鑰。");
+    throw new FlightApiError("API key invalid or unauthorized — check your key on the Settings tab.");
   }
   if (res.status === 429) {
-    throw new FlightApiError("已達 API 查詢額度上限，請稍後再試或下個月再查詢。");
+    throw new FlightApiError("API quota reached for this month — try again later or use Manual Entry.");
   }
   if (!res.ok) {
-    throw new FlightApiError(`查詢失敗 (HTTP ${res.status})。`);
+    throw new FlightApiError(`Lookup failed (HTTP ${res.status}).`);
   }
 
   const data = await res.json();
