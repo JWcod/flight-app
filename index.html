@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flight Log</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -44,6 +45,7 @@
       <div class="map-wrap">
         <div id="map"></div>
         <div class="map-hero-stats" id="map-hero-stats"></div>
+        <div class="map-attribution">Imagery &copy; Esri, Maxar, Earthstar Geographics</div>
       </div>
       <div id="visited-flags" class="visited-flags"></div>
     </section>
@@ -113,6 +115,7 @@
     <section id="tab-list" class="tab-panel">
       <div class="card">
         <h2>All Flights</h2>
+        <div id="flights-year-filter" class="year-filter"></div>
         <div id="flight-list-empty" class="empty-state hidden">
           <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2.5 1.5V22l4-1 4 1v-1.5L13 19v-5.5l8 2.5Z"/></svg>
           <h3>No flights logged yet</h3>
@@ -220,6 +223,23 @@
     </section>
   </main>
 
+  <div id="airport-modal" class="airport-modal hidden">
+    <div class="airport-modal-backdrop" id="airport-modal-backdrop"></div>
+    <div class="airport-modal-content">
+      <div class="airport-modal-header">
+        <div>
+          <div class="airport-modal-iata" id="airport-modal-iata">—</div>
+          <div class="airport-modal-name" id="airport-modal-name"></div>
+        </div>
+        <button type="button" class="airport-modal-close" id="airport-modal-close" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="airport-detail-map" class="airport-detail-map"></div>
+      <div class="airport-modal-attribution">Imagery &copy; Esri, Maxar, Earthstar Geographics — scroll or pinch to zoom all the way in</div>
+    </div>
+  </div>
+
   <div id="recap-modal" class="recap-modal hidden">
     <div class="recap-modal-backdrop" id="recap-modal-backdrop"></div>
     <div class="recap-modal-content">
@@ -235,6 +255,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="js/airports.js"></script>
   <script src="js/airlines.js"></script>
   <script src="js/worldmap.js"></script>
@@ -242,6 +263,7 @@
   <script src="js/storage.js"></script>
   <script src="js/flightApi.js"></script>
   <script src="js/map.js"></script>
+  <script src="js/airportDetail.js"></script>
   <script src="js/recap.js"></script>
   <script src="js/app.js"></script>
 </body>

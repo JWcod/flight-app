@@ -13,6 +13,7 @@ const AIRLINE_NAMES = Array.from(
 let map = null;
 let pendingFlightDetails = null; // selected candidate from API search, or null for manual
 let selectedStatsYear = null;    // null = all years
+let selectedFlightsYear = null;  // null = all years (flight list grouped by year instead)
 
 // ---------- Airline logo helpers ----------
 const AIRLINE_IATA_BY_NAME = {};
@@ -357,97 +358,142 @@ function resetAddFlightForm() {
 }
 
 // ---------- Flight list ----------
+function createFlightCardEl(f, animIndex) {
+  const airlineName = f.airline?.name || "";
+  const duration = estimateFlightDuration(f.distanceKm);
+  const card = document.createElement("div");
+  card.className = "flight-card";
+  card.style.animationDelay = `${Math.min(animIndex, 12) * 35}ms`;
+  card.innerHTML = `
+    <div class="fc-top">
+      <div class="fc-airline">
+        <span class="fc-logo-slot"></span>
+        <span class="fc-airline-name">${escapeHtml(airlineName)}</span>
+      </div>
+      <div class="fc-date">${f.date}</div>
+    </div>
+    <div class="fc-route">
+      <div class="fc-airport">
+        <div class="fc-iata">${f.departure.iata}</div>
+        <div class="fc-city">${escapeHtml(f.departure.city)}</div>
+      </div>
+      <div class="fc-line">
+        <div class="fc-dashes"></div>
+        <div class="fc-line-center">
+          <svg class="fc-plane-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2.5 1.5V22l4-1 4 1v-1.5L13 19v-5.5l8 2.5Z"/></svg>
+          ${duration ? `<div class="fc-duration">~${duration}</div>` : ""}
+        </div>
+        <div class="fc-dashes"></div>
+      </div>
+      <div class="fc-airport fc-airport-right">
+        <div class="fc-iata">${f.arrival.iata}</div>
+        <div class="fc-city">${escapeHtml(f.arrival.city)}</div>
+      </div>
+    </div>
+    <div class="fc-bottom">
+      <span class="fc-distance">${(f.distanceKm || 0).toLocaleString()} km</span>
+      <button class="delete-btn" data-id="${f.id}">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg>
+        Delete
+      </button>
+    </div>
+  `;
+  card.querySelector(".fc-logo-slot").replaceWith(createAirlineLogoEl(airlineName));
+  card.querySelector(".delete-btn").addEventListener("click", () => {
+    if (confirm("Delete this flight from your log?")) {
+      deleteFlight(f.id);
+      renderAll();
+    }
+  });
+  return card;
+}
+
 function renderFlightList() {
-  const flights = getFlights().slice().sort((a, b) => (a.date < b.date ? 1 : -1));
+  const allFlights = getFlights();
+  const flights = (selectedFlightsYear
+    ? allFlights.filter((f) => f.date?.startsWith(selectedFlightsYear))
+    : allFlights
+  ).slice().sort((a, b) => (a.date < b.date ? 1 : -1));
+
   const container = document.getElementById("flights-container");
   container.innerHTML = "";
 
-  if (flights.length === 0) {
+  if (allFlights.length === 0) {
     document.getElementById("flight-list-empty").classList.remove("hidden");
     return;
   }
   document.getElementById("flight-list-empty").classList.add("hidden");
 
-  flights.forEach((f, i) => {
-    const airlineName = f.airline?.name || "";
-    const duration = estimateFlightDuration(f.distanceKm);
-    const card = document.createElement("div");
-    card.className = "flight-card";
-    card.style.animationDelay = `${Math.min(i, 12) * 35}ms`;
-    card.innerHTML = `
-      <div class="fc-top">
-        <div class="fc-airline">
-          <span class="fc-logo-slot"></span>
-          <span class="fc-airline-name">${escapeHtml(airlineName)}</span>
-        </div>
-        <div class="fc-date">${f.date}</div>
-      </div>
-      <div class="fc-route">
-        <div class="fc-airport">
-          <div class="fc-iata">${f.departure.iata}</div>
-          <div class="fc-city">${escapeHtml(f.departure.city)}</div>
-        </div>
-        <div class="fc-line">
-          <div class="fc-dashes"></div>
-          <div class="fc-line-center">
-            <svg class="fc-plane-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2.5 1.5V22l4-1 4 1v-1.5L13 19v-5.5l8 2.5Z"/></svg>
-            ${duration ? `<div class="fc-duration">~${duration}</div>` : ""}
-          </div>
-          <div class="fc-dashes"></div>
-        </div>
-        <div class="fc-airport fc-airport-right">
-          <div class="fc-iata">${f.arrival.iata}</div>
-          <div class="fc-city">${escapeHtml(f.arrival.city)}</div>
-        </div>
-      </div>
-      <div class="fc-bottom">
-        <span class="fc-distance">${(f.distanceKm || 0).toLocaleString()} km</span>
-        <button class="delete-btn" data-id="${f.id}">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg>
-          Delete
-        </button>
-      </div>
-    `;
-    card.querySelector(".fc-logo-slot").replaceWith(createAirlineLogoEl(airlineName));
-    card.querySelector(".delete-btn").addEventListener("click", () => {
-      if (confirm("Delete this flight from your log?")) {
-        deleteFlight(f.id);
-        renderAll();
-      }
-    });
-    container.appendChild(card);
+  if (selectedFlightsYear) {
+    flights.forEach((f, i) => container.appendChild(createFlightCardEl(f, i)));
+    return;
+  }
+
+  // No year selected: group the full list under year headers so you're
+  // never scrolling through one undifferentiated wall of cards.
+  let lastYear = null;
+  let animIndex = 0;
+  flights.forEach((f) => {
+    const year = f.date?.slice(0, 4) || "Unknown";
+    if (year !== lastYear) {
+      const header = document.createElement("div");
+      header.className = "flights-year-header";
+      header.textContent = year;
+      container.appendChild(header);
+      lastYear = year;
+    }
+    container.appendChild(createFlightCardEl(f, animIndex++));
   });
 }
 
-// ---------- Year filter ----------
-function renderYearFilter() {
+// ---------- Year filters (Flights list + Stats) ----------
+// Shared by both tabs' year-pill rows. getSelected/setSelected read and
+// write whichever module-level "selected year" variable this filter
+// controls; onChange re-renders whatever that filter drives.
+function renderYearFilterInto(containerId, getSelected, setSelected, onChange) {
   const allFlights = getFlights();
   const years = Array.from(
-    new Set(allFlights.map(f => f.date?.slice(0, 4)).filter(Boolean))
+    new Set(allFlights.map((f) => f.date?.slice(0, 4)).filter(Boolean))
   ).sort((a, b) => b - a); // newest first
 
-  // Auto-reset if selected year no longer exists
-  if (selectedStatsYear && !years.includes(selectedStatsYear)) {
-    selectedStatsYear = null;
+  if (getSelected() && !years.includes(getSelected())) {
+    setSelected(null);
   }
 
-  const container = document.getElementById("year-filter");
+  const container = document.getElementById(containerId);
   container.innerHTML = "";
   if (years.length < 2) return; // no point showing filter for 0–1 years
 
-  ["All", ...years].forEach(label => {
+  ["All", ...years].forEach((label) => {
     const isAll = label === "All";
-    const active = isAll ? selectedStatsYear === null : selectedStatsYear === label;
+    const active = isAll ? getSelected() === null : getSelected() === label;
     const btn = document.createElement("button");
     btn.className = "year-btn" + (active ? " active" : "");
     btn.textContent = label;
     btn.addEventListener("click", () => {
-      selectedStatsYear = isAll ? null : label;
-      renderYearFilter();
-      renderStats();
+      setSelected(isAll ? null : label);
+      onChange();
     });
     container.appendChild(btn);
   });
+}
+
+function renderFlightsYearFilter() {
+  renderYearFilterInto(
+    "flights-year-filter",
+    () => selectedFlightsYear,
+    (v) => { selectedFlightsYear = v; },
+    () => { renderFlightsYearFilter(); renderFlightList(); }
+  );
+}
+
+function renderYearFilter() {
+  renderYearFilterInto(
+    "year-filter",
+    () => selectedStatsYear,
+    (v) => { selectedStatsYear = v; },
+    () => { renderYearFilter(); renderStats(); }
+  );
 }
 
 // ---------- Statistics ----------
@@ -753,6 +799,7 @@ function renderMapHeroStats() {
 
 // ---------- Render all ----------
 function renderAll() {
+  renderFlightsYearFilter();
   renderFlightList();
   renderYearFilter();
   renderStats();

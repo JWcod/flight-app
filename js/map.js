@@ -40,14 +40,26 @@ function circularMeanLng(lngs) {
 }
 
 const GLOBE_ASSETS = "https://cdn.jsdelivr.net/npm/three-globe/example/img";
+// Esri World Imagery: a free, no-API-key slippy-tile satellite basemap
+// (same family of service Leaflet/Mapbox demos commonly use for a free
+// satellite layer) — much sharper than a single static equirectangular
+// texture at moderate zoom. Note: globe.gl's tile-draped-sphere mode has
+// a known, unresolved upstream cap around tile level 14 regardless of
+// globeTileEngineMaxLevel (https://github.com/vasturiano/globe.gl/issues/258),
+// so this globe is for the overview/route view, not pixel-level zoom.
+// Clicking an airport opens a flat 2D Leaflet map (js/airportDetail.js)
+// using the same imagery, which has no such cap, for genuine deep zoom.
+const ESRI_WORLD_IMAGERY_TILE_URL = (x, y, l) =>
+  `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${l}/${y}/${x}`;
 
 function initMap(containerId) {
   const el = document.getElementById(containerId);
 
   _globe = new Globe(el)
-    .globeImageUrl(`${GLOBE_ASSETS}/earth-night.jpg`)
+    .globeTileEngineUrl(ESRI_WORLD_IMAGERY_TILE_URL)
     .bumpImageUrl(`${GLOBE_ASSETS}/earth-topology.png`)
     .backgroundImageUrl(`${GLOBE_ASSETS}/night-sky.png`)
+    .globeCurvatureResolution(12)
     .showAtmosphere(true)
     .atmosphereColor("#4cc9f0")
     .atmosphereAltitude(0.2)
@@ -64,16 +76,24 @@ function initMap(containerId) {
     .arcDashLength(0.35)
     .arcDashGap(0.18)
     .arcDashAnimateTime(2600)
-    .pointLat("lat")
-    .pointLng("lon")
-    .pointLabel((d) => `<div class="globe-tooltip"><strong>${d.iata}</strong><br>${d.city || d.name || ""}</div>`)
-    .pointColor(() => "#8fd9f5")
-    .pointAltitude(0.012)
-    .pointRadius(0.32)
-    .pointResolution(24)
-    .pointsMerge(true)
-    .onPointClick((pt) => {
-      _globe.pointOfView({ lat: pt.lat, lng: pt.lon, altitude: 1.3 }, 1000);
+    .htmlLat("lat")
+    .htmlLng("lon")
+    .htmlElement((d) => {
+      // A fixed-pixel-size DOM marker (CSS2D), not a 3D mesh — its size
+      // never balloons on zoom the way pointsData/pointRadius (an
+      // angular-degree mesh) did, and it stays pinned exactly on the
+      // airport's coordinates at every zoom level.
+      const el = document.createElement("div");
+      el.className = "airport-marker";
+      el.innerHTML = `
+        <div class="airport-marker-dot"></div>
+        <div class="airport-marker-tooltip">${d.iata || ""} — ${d.city || d.name || ""}</div>
+      `;
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openAirportDetail(d);
+      });
+      return el;
     });
 
   const controls = _globe.controls();
@@ -130,7 +150,7 @@ function renderRoutes(flights) {
   });
 
   _globe.arcsData(arcs);
-  _globe.pointsData(Array.from(airportsSeen.values()));
+  _globe.htmlElementsData(Array.from(airportsSeen.values()));
   _lastAirports = airportsSeen;
 }
 
